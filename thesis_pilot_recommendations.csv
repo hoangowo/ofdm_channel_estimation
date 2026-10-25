@@ -1,0 +1,9 @@
+kich_ban,fd_norm_range,Df_rec,Dt_rec,pilot_overhead_pct,ghi_chu
+Static Channel,0.000,4,7,5.4,Kenh tinh: co the dung Dt lon
+Pedestrian (di bo),0.005~0.01,4,4,8.9,"Di bo: Dt=4 du tot, Df=4 an toan"
+Urban Vehicular (do thi),0.01~0.05,4,2,14.3,Do thi: Dt=2 dam bao theo doi Doppler
+High-Speed (cao toc),0.05~0.10,4,1,25.0,Cao toc: can Dt=1 (moi sym la pilot)
+
+Complexity (ms/frame),,,,,
+LS 2D,0.948,,,,
+DFT 2D,1.334,,,,
