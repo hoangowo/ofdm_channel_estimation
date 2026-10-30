@@ -29,6 +29,18 @@ from estimator import LSEstimator
 # HÀM TIỆN ÍCH CHUNG
 # ===========================================================================
 
+def safe_semilogy(ax, x, y, *args, **kwargs):
+    """
+    [FIX 4b] Vẽ semilogy an toàn: BER=0 được thay bằng NaN để không hiển thị
+    trên đồ thị log (thay vì giả mạo thành 1e-6).
+    Ghi chú: BER=0 có nghĩa là không quan sát được lỗi nào, KHÔNG phải BER thực sự bằng 0.
+    """
+    y_safe = np.where(np.array(y) == 0, np.nan, y)
+    return ax.semilogy(x, y_safe, *args, **kwargs)
+
+
+# ===========================================================================
+
 def simulate_frame(ofdm, estimator, channel, snr_db, df, dt, num_symbols,
                    window_len_ncp, window_len_pdp):
     """
@@ -105,10 +117,8 @@ def run_snr_sweep(fd_norm, df, dt, modulation, num_frames, num_symbols,
     ofdm      = OFDMSystem(n_fft=N_FFT, n_cp=N_CP, pilot_spacing=PILOT_SPACING_FREQ,
                            modulation=modulation, pilot_value=PILOT_VALUE)
     estimator = LSEstimator()
-    channel   = TimeVaryingRayleighChannel(
-        pdp=CHANNEL_PDP, fd_norm=fd_norm, n_fft=N_FFT, n_cp=N_CP,
-        num_symbols_per_frame=num_symbols
-    )
+    # [FIX 3] Channel được tạo mới cho mỗi frame trong vòng lặp Monte Carlo bên dưới
+    # để đảm bảo tính độc lập thống kê giữa các frame
 
     mse_ls_arr     = np.zeros(len(snr_range))
     mse_dft_ncp_arr= np.zeros(len(snr_range))
@@ -122,6 +132,13 @@ def run_snr_sweep(fd_norm, df, dt, modulation, num_frames, num_symbols,
         total_bits = {'n':0,'ep':0,'els':0,'edcp':0,'edpd':0,
                       'mls':0,'mdcp':0,'mdpd':0}
         for _ in range(num_frames):
+            # [FIX 3] Tạo channel mới cho mỗi frame Monte Carlo
+            # để đảm bảo các frame có channel realization độc lập
+            # (tránh lặp lại cùng channel trajectory do reuse phase offsets)
+            channel = TimeVaryingRayleighChannel(
+                pdp=CHANNEL_PDP, fd_norm=fd_norm, n_fft=N_FFT, n_cp=N_CP,
+                num_symbols_per_frame=num_symbols
+            )
             r = simulate_frame(ofdm, estimator, channel, snr_db, df, dt, num_symbols,
                                window_len_ncp, window_len_pdp)
             total_bits['n']    += r['n_bits']
@@ -137,10 +154,12 @@ def run_snr_sweep(fd_norm, df, dt, modulation, num_frames, num_symbols,
         mse_ls_arr[si]      = total_bits['mls'] / num_frames
         mse_dft_ncp_arr[si] = total_bits['mdcp'] / num_frames
         mse_dft_pdp_arr[si] = total_bits['mdpd'] / num_frames
-        ber_perfect_arr[si] = max(total_bits['ep'] / n, 1e-6)
-        ber_ls_arr[si]      = max(total_bits['els'] / n, 1e-6)
-        ber_dft_ncp_arr[si] = max(total_bits['edcp'] / n, 1e-6)
-        ber_dft_pdp_arr[si] = max(total_bits['edpd'] / n, 1e-6)
+        # [FIX 4] Lưu BER thực tế, KHÔNG thay BER=0 bằng 1e-6
+        # Ghi nhận số bit lỗi thực tế để báo cáo trung thực
+        ber_perfect_arr[si] = total_bits['ep'] / n
+        ber_ls_arr[si]      = total_bits['els'] / n
+        ber_dft_ncp_arr[si] = total_bits['edcp'] / n
+        ber_dft_pdp_arr[si] = total_bits['edpd'] / n
 
     return {
         'snr'        : snr_range,
@@ -218,10 +237,10 @@ def experiment1_baseline():
         (axes[0], (results_fd0_qpsk,  results_fd5_qpsk,  'QPSK')),
         (axes[1], (results_fd0_16qam, results_fd5_16qam, '16QAM')),
     ]:
-        ax.semilogy(snr_range, r0['ber_perfect'], 'k--',  label='Perfect CSI (fd=0)', linewidth=2)
-        ax.semilogy(snr_range, r0['ber_ls'],      'b-o',  label='LS 2D (fd=0)', markersize=5)
-        ax.semilogy(snr_range, r0['ber_dft_pdp'], 'g-^',  label=f'DFT L={window_pdp} (fd=0)', markersize=5)
-        ax.semilogy(snr_range, r5['ber_dft_pdp'], 'g--^', label=f'DFT L={window_pdp} (fd=0.005)', markersize=5, alpha=0.7)
+        safe_semilogy(ax, snr_range, r0['ber_perfect'], 'k--',  label='Perfect CSI (fd=0)', linewidth=2)
+        safe_semilogy(ax, snr_range, r0['ber_ls'],      'b-o',  label='LS 2D (fd=0)', markersize=5)
+        safe_semilogy(ax, snr_range, r0['ber_dft_pdp'], 'g-^',  label=f'DFT L={window_pdp} (fd=0)', markersize=5)
+        safe_semilogy(ax, snr_range, r5['ber_dft_pdp'], 'g--^', label=f'DFT L={window_pdp} (fd=0.005)', markersize=5, alpha=0.7)
         ax.set_xlabel('SNR (dB)')
         ax.set_ylabel('BER')
         ax.set_title(mod_name)
@@ -330,10 +349,10 @@ def experiment2_mobility():
 
         # BER vs fd_norm
         ax = axes[1, col_idx]
-        ax.semilogy(fd_arr, ber_perfect, 'k--',  label='Perfect CSI', linewidth=2)
-        ax.semilogy(fd_arr, ber_ls,      'b-o',  label='LS 2D', markersize=6)
-        ax.semilogy(fd_arr, ber_dft_ncp, 'r-s',  label=f'DFT (L={N_CP})', markersize=6)
-        ax.semilogy(fd_arr, ber_dft_pdp, 'g-^',  label=f'DFT (L={window_pdp})', markersize=6)
+        safe_semilogy(ax, fd_arr, ber_perfect, 'k--',  label='Perfect CSI', linewidth=2)
+        safe_semilogy(ax, fd_arr, ber_ls,      'b-o',  label='LS 2D', markersize=6)
+        safe_semilogy(ax, fd_arr, ber_dft_ncp, 'r-s',  label=f'DFT (L={N_CP})', markersize=6)
+        safe_semilogy(ax, fd_arr, ber_dft_pdp, 'g-^',  label=f'DFT (L={window_pdp})', markersize=6)
         ax.set_title(f'BER vs Doppler (SNR={snr_db} dB)')
         ax.set_xlabel('Normalized Doppler fd_norm')
         ax.set_ylabel('BER')
@@ -421,7 +440,7 @@ def experiment3_pilot_grid():
         for ci, (df, dt) in enumerate(configs):
             res = results_pilot[(df, dt, fd_norm)]
             snr_arr = res['snr']
-            ax.semilogy(snr_arr, res['ber_dft_pdp'],
+            safe_semilogy(ax, snr_arr, res['ber_dft_pdp'],
                         color=colors[ci], marker=markers[ci],
                         label=f'(Df={df}, Dt={dt})', markersize=5)
         ax.set_title(f'BER vs SNR, fd_norm={fd_norm}')

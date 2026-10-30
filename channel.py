@@ -158,14 +158,16 @@ class TimeVaryingRayleighChannel:
 
             h_I(t) = 2*sum_{n=1}^{N0} cos(phi_n)*cos(w_n*t) + sqrt(2)*cos(w_d*t)
             h_Q(t) = 2*sum_{n=1}^{N0} sin(phi_n)*cos(w_n*t) + 0  [phi_N=0 -> sin(0)=0]
-            h(t)   = E0 / sqrt(2*N0 + 1) * (h_I(t) + j*h_Q(t))
+            h(t)   = sqrt(P_l / (4*N0+1)) * (h_I(t) + j*h_Q(t))
 
         Trong đó:
         - w_n = 2*pi*fd_norm*cos(theta_n): Tần số góc dịch tần Doppler của sóng phẳng thứ n
         - w_d = 2*pi*fd_norm              : Tần số Doppler cực đại (specular component)
         - N0                              : Số sóng sin (num_sinusoids = 8)
-        - E0 = sqrt(P_l)                  : Hệ số tỉ lệ để chuẩn hóa công suất tap
         - phi_N = 0                       : Pha ban đầu của thành phần specular (tất định)
+
+        [FIX 1] Chuẩn hóa thời gian: fd_norm = f_d * T_sym, nên t = sample_index / symbol_len.
+        [FIX 2] Chuẩn hóa công suất: E[|h_unnorm|^2] = 4*N0 + 1, scale = sqrt(P_l/(4*N0+1)).
 
         Hàm tự tương quan thời gian của kết quả thỏa mãn Eq. 2.27:
             E[h*(t) h(t+tau)] = P_l * J_0(2*pi*fd_norm*tau)
@@ -179,7 +181,10 @@ class TimeVaryingRayleighChannel:
         # Tần số Doppler cực đại (cho thành phần specular): w_d = 2*pi*fd_norm
         w_d = 2.0 * np.pi * self.fd_norm
 
-        t = float(sample_index)  # Thời gian rời rạc (mẫu)
+        # [FIX 1] Chuẩn hóa thời gian: chuyển sample_index sang đơn vị OFDM symbol
+        # fd_norm = f_d * T_sym (theo symbol period), nên t phải tính bằng symbol period
+        # t = sample_index / symbol_len, với symbol_len = N_FFT + N_CP = 80
+        t = float(sample_index) / float(self.symbol_len)
 
         # Thành phần In-phase (Eq. 2.23a), với phi_N=0 -> cos(phi_N)=1
         h_I = 2.0 * np.sum(np.cos(phi) * np.cos(w_n * t)) + np.sqrt(2.0) * np.cos(w_d * t)
@@ -187,9 +192,14 @@ class TimeVaryingRayleighChannel:
         # Thành phần Quadrature (Eq. 2.23b), với phi_N=0 -> sin(phi_N)=0
         h_Q = 2.0 * np.sum(np.sin(phi) * np.cos(w_n * t))
 
-        # Chuẩn hóa năng lượng tap (Eq. 2.25): E0/sqrt(2*N0+1) đảm bảo E[|h|^2] = P_l
-        E0    = np.sqrt(p_l)
-        h_tap = (E0 / np.sqrt(2 * self.num_sinusoids + 1)) * (h_I + 1j * h_Q)
+        # [FIX 2] Chuẩn hóa công suất tap chính xác:
+        # Phân tích: h_I có (N0+1) thành phần cosine => E[h_I^2] = 2*N0 + 1
+        #            h_Q có N0 thành phần cosine     => E[h_Q^2] = 2*N0
+        # => E[|h_unnorm|^2] = (2*N0+1) + 2*N0 = 4*N0 + 1
+        # Để E[|h|^2] = P_l: scale = sqrt(P_l / (4*N0 + 1))
+        N0 = self.num_sinusoids
+        scale = np.sqrt(p_l / (4.0 * N0 + 1.0))
+        h_tap = scale * (h_I + 1j * h_Q)
         return h_tap
 
     def _generate_h_at_symbol(self, symbol_idx):

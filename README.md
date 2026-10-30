@@ -94,17 +94,19 @@ Mô hình Jakes được triển khai theo đúng **Program 2.20 (trang 53–54)
 - **Góc tới:** $\theta_n = \frac{2\pi n}{N}$, $n = 1, 2, \ldots, N_0$   (Eq. 2.26, trang 51)
 - **Pha ban đầu:** $\phi_n = \frac{\pi n}{N_0 + 1}$ (Eq. 2.24, trang 51) + offset ngẫu nhiên riêng cho từng tap để các tap độc lập
 
-Công thức tổng hợp (Eq. 2.23a, 2.23b, 2.25 — trang 51):
+Công thức tổng hợp (Eq. 2.23a, 2.23b, 2.25 — trang 51, đã chuẩn hóa theo đúng phân tích năng lượng):
 
 $$h_I(t) = 2\sum_{n=1}^{N_0} \cos(\phi_n)\cos(w_n t) + \sqrt{2}\cos(w_d t)$$
 $$h_Q(t) = 2\sum_{n=1}^{N_0} \sin(\phi_n)\cos(w_n t)$$
-$$h_l(t) = \frac{E_0}{\sqrt{2N_0 + 1}} \left[ h_I(t) + j h_Q(t) \right]$$
+$$h_l(t) = \sqrt{\frac{P_l}{4N_0 + 1}} \left[ h_I(t) + j h_Q(t) \right]$$
 
-trong đó $w_n = 2\pi f_{d,norm} \cos(\theta_n)$ (Eq. 2.26) và $w_d = 2\pi f_{d,norm}$; $E_0 = \sqrt{P_l}$ để chuẩn hóa công suất tap.
+trong đó:
+- $w_n = 2\pi f_{d,norm} \cos(\theta_n)$ (Eq. 2.26) và $w_d = 2\pi f_{d,norm}$.
+- Biến thời gian chuẩn hóa theo chu kỳ ký hiệu OFDM: $t = \frac{\text{sample\_index}}{N_{FFT} + N_{CP}}$ (tránh phóng đại Doppler gấp 80 lần khi dùng sample index rời rạc).
+- Hệ số chuẩn hóa $\sqrt{\frac{P_l}{4N_0 + 1}}$ bảo đảm công suất trung bình chuẩn mực: $\mathbb{E}\left[|h_l(t)|^2\right] = P_l$, vì $\mathbb{E}[h_I^2] = 2N_0 + 1$ và $\mathbb{E}[h_Q^2] = 2N_0$.
 
 Hàm tự tương quan thời gian của kết quả thỏa mãn (Eq. 2.27, trang 52):
-$$R_{h_l}(\Delta n) = \mathbb{E}\left[h_l^*(t)\, h_l(t + \Delta t)\right] = P_l \cdot J_0(2\pi f_{d,norm} \Delta n)
-$$
+$$R_{h_l}(\Delta n) = \mathbb{E}\left[h_l^*(t)\, h_l(t + \Delta t)\right] = P_l \cdot J_0(2\pi f_{d,norm} \Delta n)$$
 
 #### Hai chế độ hoạt động trong dự án:
 1. **`block_aging` (Mặc định)**: Kênh giữ nguyên trong 1 ký hiệu OFDM ($T_{sym} \ll T_c$), nhưng biến thiên có tương quan giữa các ký hiệu liên tiếp trong frame.
@@ -343,17 +345,17 @@ Thí nghiệm khảo sát hiệu năng ước lượng kênh trên dải SNR t�
 
 | Điều Chế | SNR (dB) | MSE LS | MSE DFT ($L_{win}=16$) | MSE DFT ($L_{win}=3$) | BER Perfect CSI | BER LS | BER DFT ($L_{win}=16$) | BER DFT ($L_{win}=3$) |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **QPSK** | 0 | 0.6857 | 0.3699 | **0.1778** | 0.3065 | 0.3906 | 0.3735 | **0.3476** |
-| | 4 | 0.2741 | 0.1488 | **0.0713** | 0.2182 | 0.2969 | 0.2741 | **0.2483** |
-| | 8 | 0.1102 | 0.0600 | **0.0293** | 0.1245 | 0.1835 | 0.1654 | **0.1453** |
-| | 12 | 0.0435 | 0.0237 | **0.0115** | 0.0579 | 0.0910 | 0.0790 | **0.0686** |
-| | 16 | 0.0173 | 0.0094 | **0.0046** | 0.0240 | 0.0401 | 0.0339 | **0.0288** |
-| | 20 | 0.0070 | 0.0038 | **0.0018** | 0.0071 | 0.0133 | 0.0108 | **0.0088** |
-| | 24 | 0.0028 | 0.0015 | **0.0008** | 0.0009 | 0.0025 | 0.0018 | **0.0012** |
-| **16-QAM** | 0 | 0.6901 | 0.3739 | **0.1813** | 0.3692 | 0.4129 | 0.4022 | **0.3891** |
-| | 8 | 0.1099 | 0.0596 | **0.0291** | 0.2247 | 0.2668 | 0.2550 | **0.2416** |
-| | 16 | 0.0173 | 0.0093 | **0.0045** | 0.0923 | 0.1181 | 0.1099 | **0.1011** |
-| | 24 | 0.0028 | 0.0016 | **0.0008** | 0.0276 | 0.0383 | 0.0347 | **0.0312** |
+| **QPSK** | 0 | 0.6917 | 0.3714 | **0.1788** | 0.2140 | 0.2892 | 0.2692 | **0.2443** |
+| | 4 | 0.2741 | 0.1471 | **0.0709** | 0.1191 | 0.1709 | 0.1533 | **0.1374** |
+| | 8 | 0.1096 | 0.0590 | **0.0286** | 0.0630 | 0.0947 | 0.0841 | **0.0733** |
+| | 12 | 0.0437 | 0.0239 | **0.0118** | 0.0279 | 0.0432 | 0.0378 | **0.0327** |
+| | 16 | 0.0177 | 0.0098 | **0.0049** | 0.0121 | 0.0195 | 0.0166 | **0.0143** |
+| | 20 | 0.0072 | 0.0040 | **0.0021** | 0.0044 | 0.0072 | 0.0062 | **0.0053** |
+| | 24 | 0.0031 | 0.0018 | **0.0010** | 0.0022 | 0.0037 | 0.0032 | **0.0027** |
+| **16-QAM** | 0 | 0.6896 | 0.3728 | **0.1802** | 0.3171 | 0.3645 | 0.3515 | **0.3365** |
+| | 8 | 0.1086 | 0.0588 | **0.0284** | 0.1491 | 0.1895 | 0.1741 | **0.1594** |
+| | 16 | 0.0176 | 0.0097 | **0.0048** | 0.0436 | 0.0637 | 0.0563 | **0.0493** |
+| | 24 | 0.0031 | 0.0017 | **0.0009** | 0.0095 | 0.0152 | 0.0135 | **0.0121** |
 
 #### B. Đồ thị Kết quả & Đánh giá Chi tiết
 
@@ -394,16 +396,16 @@ Thí nghiệm cố định cấu hình pilot $(D_f = 4, D_t = 2)$ và khảo sá
 
 | SNR (dB) | $f_{d,norm}$ | MSE LS | MSE DFT ($L_{win}=16$) | MSE DFT ($L_{win}=3$) | BER Perfect CSI | BER LS | BER DFT ($L_{win}=16$) | BER DFT ($L_{win}=3$) |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **10 dB** | 0.000 | 0.0543 | 0.0294 | 0.0143 | 0.00006 | 0.00038 | 0.00021 | 0.00012 |
-| | 0.010 | 0.5375 | 0.5124 | 0.4975 | 0.04109 | 0.27510 | 0.26872 | 0.26283 |
-| | 0.030 | 0.6992 | 0.6748 | 0.6594 | 0.02551 | 0.30358 | 0.30157 | 0.30098 |
-| | 0.050 | 0.6974 | 0.6726 | 0.6577 | 0.02406 | 0.23292 | 0.23065 | 0.22906 |
-| | 0.100 | 0.3431 | 0.3184 | 0.3033 | 0.04862 | 0.18004 | 0.17112 | 0.16279 |
-| **20 dB** | 0.000 | 0.0056 | 0.0031 | 0.0015 | 0.00000 | 0.00000 | 0.00000 | 0.00000 |
-| | 0.010 | 0.5968 | 0.5943 | 0.5927 | 0.00403 | 0.24953 | 0.24902 | 0.24907 |
-| | 0.030 | 0.5264 | 0.5238 | 0.5222 | 0.00324 | 0.20534 | 0.20505 | 0.20499 |
-| | 0.050 | 0.7485 | 0.7459 | 0.7444 | 0.00296 | 0.23702 | 0.23691 | 0.23624 |
-| | 0.100 | 0.5499 | 0.5474 | 0.5459 | 0.00257 | 0.19516 | 0.19446 | 0.19396 |
+| **10 dB** | 0.000 | 0.0546 | 0.0295 | **0.0146** | 0.0398 | 0.0574 | 0.0506 | **0.0456** |
+| | 0.010 | 0.0538 | 0.0290 | **0.0141** | 0.0481 | 0.0688 | 0.0611 | **0.0542** |
+| | 0.030 | 0.0545 | 0.0295 | **0.0143** | 0.0735 | 0.1017 | 0.0908 | **0.0824** |
+| | 0.050 | 0.0543 | 0.0298 | **0.0146** | 0.0701 | 0.0978 | 0.0877 | **0.0790** |
+| | 0.100 | 0.0571 | 0.0324 | **0.0173** | 0.0728 | 0.1042 | 0.0926 | **0.0829** |
+| **20 dB** | 0.000 | 0.0057 | 0.0031 | **0.0016** | 0.0036 | 0.0055 | 0.0047 | **0.0040** |
+| | 0.010 | 0.0057 | 0.0031 | **0.0016** | 0.0058 | 0.0086 | 0.0074 | **0.0067** |
+| | 0.030 | 0.0057 | 0.0031 | **0.0016** | 0.0102 | 0.0148 | 0.0130 | **0.0116** |
+| | 0.050 | 0.0059 | 0.0033 | **0.0018** | 0.0084 | 0.0126 | 0.0108 | **0.0096** |
+| | 0.100 | 0.0089 | 0.0064 | **0.0049** | 0.0092 | 0.0150 | 0.0132 | **0.0119** |
 
 #### B. Đồ thị Kết quả & Đánh giá Hiện tượng Sàn Lỗi
 
@@ -411,16 +413,14 @@ Thí nghiệm cố định cấu hình pilot $(D_f = 4, D_t = 2)$ và khảo sá
 
 *Hình 3: Tác động của tần số Doppler chuẩn hóa ($f_{d,norm} = f_d \cdot T_{sym}$ từ 0.00 đến 0.10) lên MSE kênh (nửa trên) và BER (nửa dưới) ở hai mức SNR = 10 dB và 20 dB.*
 
-> **🔎 Đánh giá & Nhận xét Chuyên sâu về Hình 3 (Ảnh hưởng Doppler & Error Floor):**
-> 1. **Hiệu năng khi có chuyển động tương đối**:
->    - Tại $f_{d,norm} = 0.00$ (kênh tĩnh), ở SNR = 20 dB, hệ thống đạt hiệu năng gần như không lỗi ($\text{BER} \approx 0$, $\text{MSE} = 0.0015$).
->    - Ngay khi xuất hiện di động dù rất nhỏ ($f_{d,norm} = 0.01$, tương ứng người đi bộ $3 \sim 5\text{ km/h}$), MSE kênh lập tức nhảy vọt từ $0.0056$ lên $0.5968$ (tăng hơn **100 lần**), đồng thời BER vọt lên mức $24.9\%$.
-> 2. **Cơ chế hình thành Sàn Lỗi (Error Floor)**:
->    - Quan sát đối chiếu giữa SNR = 10 dB và SNR = 20 dB: khi $f_{d,norm} \ge 0.01$, **đường cong BER ở SNR = 20 dB hầu như không thấp hơn SNR = 10 dB** (cùng dừng lại ở mức sàn $20\% \sim 25\%$).
->    - **Giải thích hiện tượng**: Với cấu hình $D_t = 2$ (cứ 2 ký hiệu mới có 1 ký hiệu pilot), khi kênh biến thiên theo hàm Bessel $J_0(2\pi f_d \Delta t)$, việc sử dụng phép nội suy tuyến tính bậc 1 giữa 2 mốc thời gian cách nhau $\ge 2$ symbol tạo ra một sai số mô hình xấp xỉ khổng lồ (Tracking Lag Error). Lúc này, sai số ước lượng kênh do Doppler gây ra lớn hơn hàng chục lần so với công suất nhiễu AWGN $\sigma_z^2$, vì vậy việc bơm thêm công suất phát (tăng SNR) hoàn toàn vô tác dụng.
-> 3. **Minh chứng từ Perfect CSI**:
->    - Trong khi LS và DFT bị bão hòa ở BER $\sim 20\%$, đường **Perfect CSI vẫn duy trì BER cực thấp ($0.0025 \sim 0.0040$ ở SNR = 20 dB)**. Điều này khẳng định chắc chắn rằng bản thân kênh đa đường không làm hỏng dữ liệu, mà nguyên nhân trực tiếp dẫn tới sàn lỗi là **sự thất bại của thuật toán ước lượng kênh khi mật độ pilot theo trục thời gian không bắt kịp tốc độ quay pha của Doppler**.
->    - **Kết luận giải pháp**: Đối với môi trường Doppler cao ($f_{d,norm} \ge 0.03$), bắt buộc phải giảm khoảng cách thời gian xuống $D_t = 1$ (chèn pilot trên từng ký hiệu OFDM liên tiếp) để phá vỡ sàn lỗi.
+> **🔎 Đánh giá & Nhận xét Chuyên sâu về Hình 3 (Ảnh hưởng Doppler & Chuẩn hóa Kênh):**
+> 1. **Hiệu năng bám kênh chính xác sau chuẩn hóa thời gian Jakes**:
+>    - Sau khi chuẩn hóa chính xác thời gian theo chu kỳ symbol ($t = \text{sample\_index} / 80$) và chuẩn hóa công suất tap kênh ($4N_0 + 1$), mô hình kênh phản ánh chuẩn xác quy luật vật lý tán xạ Clarke/Jakes.
+>    - Tại SNR = 20 dB: Khi $f_{d,norm}$ tăng từ $0.00$ (kênh tĩnh) đến $0.01$ (người đi bộ $\sim 5\text{ km/h}$) và $0.05$ (xe nội đô $\sim 25\text{ km/h}$), MSE kênh duy trì độ ổn định cao ở mức $0.0057 \sim 0.0059$ (đối với LS) và giảm xuống chỉ còn $0.0016 \sim 0.0018$ (đối với DFT-based $L=3$).
+>    - Tỷ lệ lỗi bit (BER) tăng dần theo tốc độ di chuyển một cách mượt mà và thực tế: từ $0.55\%$ ($f_{d,norm}=0.00$) lên $0.86\%$ ($f_{d,norm}=0.01$) và đạt $1.26\%$ ($f_{d,norm}=0.05$) ở thuật toán LS.
+> 2. **Ưu thế vượt trội của DFT-Based dưới tác động Doppler**:
+>    - Ở mọi mức Doppler từ $0.00$ đến $0.10$, thuật toán `DFT-based (L=3)` luôn cho BER thấp hơn LS rõ rệt: tại SNR = 20 dB, $f_{d,norm} = 0.05$, BER của DFT-based là $0.96\%$ so với $1.26\%$ của LS (giảm gần $24\%$ số bit lỗi).
+>    - Khi Doppler tăng lên mức cực hạn $f_{d,norm} = 0.10$ (tương đương tàu cao tốc $>100\text{ km/h}$), hiện tượng trôi pha nhanh giữa các mốc pilot $D_t = 2$ bắt đầu gây ra sai số nội suy, làm xuất hiện xu hướng sàn lỗi nhẹ (Error Floor), đòi hỏi phải chuyển sang cấu hình pilot $D_t = 1$ để bám kênh tối ưu.
 
 ---
 
@@ -468,9 +468,9 @@ Thí nghiệm khảo sát 5 cấu hình lưới pilot 2D: `(Df=2, Dt=1)`, `(Df=4
 
 | Thuật Toán Ước Lượng Kênh 2D | Thời Gian Trung Bình (ms / frame 14 symbol) | Nhận Xét Kiến Trúc |
 |:---|:---:|:---|
-| **LS 2D (Linear Interpolation)** | **0.948 ms** | Thao tác chia trực tiếp tại pilot và nội suy tuyến tính 2 trục. Cực kỳ nhanh. |
-| **DFT-Based 2D ($L_{win}$ Windowing)** | **1.334 ms** | Bổ sung 1 phép IFFT-64 và 1 phép FFT-64 trên mỗi ký hiệu thời gian. |
-| **Mức độ tăng chi phí** | **+0.386 ms (+40.7%)** | Chi phí tăng thêm rất thấp, hoàn toàn khả thi để nhúng vào DSP hoặc chip FPGA thực tế. |
+| **LS 2D (Linear Interpolation)** | **0.934 ms** | Thao tác chia trực tiếp tại pilot và nội suy tuyến tính 2 trục. Cực kỳ nhanh. |
+| **DFT-Based 2D ($L_{win}$ Windowing)** | **1.362 ms** | Bổ sung 1 phép IFFT-64 và 1 phép FFT-64 trên mỗi ký hiệu thời gian. |
+| **Mức độ tăng chi phí** | **+0.429 ms (+45.9%)** | Chi phí tăng thêm rất thấp, hoàn toàn khả thi để nhúng vào DSP hoặc chip FPGA thực tế. |
 
 #### B. Bảng Khuyến Nghị Cấu Hình Pilot Lưới 2D Theo Vận Tốc Di Chuyển (Trích từ `thesis_pilot_recommendations.csv`)
 

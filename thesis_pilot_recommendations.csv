@@ -5,5 +5,5 @@ Urban Vehicular (do thi),0.01~0.05,4,2,14.3,Do thi: Dt=2 dam bao theo doi Dopple
 High-Speed (cao toc),0.05~0.10,4,1,25.0,Cao toc: can Dt=1 (moi sym la pilot)
 
 Complexity (ms/frame),,,,,
-LS 2D,0.948,,,,
-DFT 2D,1.334,,,,
+LS 2D,0.934,,,,
+DFT 2D,1.362,,,,
